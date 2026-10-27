@@ -22,19 +22,20 @@ export function getRgb(colorString?: string | null) {
   if (!colorString) {
     return null;
   }
-  const [_1, r, g, b, _2, a] = (colorString!.match(
-    /rgba?\(([\d\.]+), ([\d\.]+), ([\d\.]+)(, ([\d\.]+))?\)/
-  )! || []) as string[];
-
-  const none = a && parseFloat(a) === 0;
-
-  if (r && g && b && !none) {
-    return {
-      r: parseInt(r) / 255,
-      g: parseInt(g) / 255,
-      b: parseInt(b) / 255,
-      a: a ? parseFloat(a) : 1,
-    };
+  const value=colorString.trim().toLowerCase();
+  const named: {[key:string]:string}={transparent:'#00000000',black:'#000000',white:'#ffffff',red:'#ff0000',blue:'#0000ff',green:'#008000'};
+  const hex=(named[value] || value).match(/^#([\da-f]{3,8})$/i);
+  if(hex){
+    let h=hex[1];if(h.length===3 || h.length===4)h=h.split('').map(c=>c+c).join('');
+    if(h.length===6 || h.length===8)return {r:parseInt(h.slice(0,2),16)/255,g:parseInt(h.slice(2,4),16)/255,b:parseInt(h.slice(4,6),16)/255,a:h.length===8?parseInt(h.slice(6,8),16)/255:1};
+  }
+  const rgb=value.match(/^rgba?\((.*)\)$/);
+  if(rgb){
+    const components=rgb[1].replace(/,/g,' ').replace(/\//g,' ').trim().split(/\s+/);
+    if(components.length<3)return null;
+    const channel=(s:string)=>Math.max(0,Math.min(1,parseFloat(s)/(s.endsWith('%')?100:255)));
+    const alpha=components[3]===undefined?1:parseFloat(components[3])/(components[3].endsWith('%')?100:1);
+    if(components.every(v=>Number.isFinite(parseFloat(v))))return {r:channel(components[0]),g:channel(components[1]),b:channel(components[2]),a:Math.max(0,Math.min(1,alpha))};
   }
   return null;
 }

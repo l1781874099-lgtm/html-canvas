@@ -1,3 +1,6 @@
+import { setDomDocument, setImageDensity } from "./environment";
+import { LocalImportOptions } from '../../shared/local-import';
+import { document, window, HTMLElement, HTMLImageElement, HTMLVideoElement, HTMLPictureElement, HTMLSourceElement, SVGSVGElement, SVGElement, getComputedStyle } from "./environment";
 import { getBoundingClientRect } from "./helpers/dimensions";
 import { getImagePaintWithUrl } from "./helpers/image";
 import { isHidden, textNodesUnder, traverse } from "./helpers/nodes";
@@ -12,6 +15,9 @@ import {
 } from "./helpers/styles";
 import { createSvgLayer, processSvgUseElements } from "./helpers/svg";
 import { buildTextNode } from "./helpers/text";
+import { backgroundPaints } from './helpers/visual-paints';
+import { glyphLayer, splitSymbolRuns } from './helpers/glyphs';
+import { materializeFormLabels } from './helpers/form-labels';
 import { getLayersForFrames } from "./helpers/frames";
 import { LayerNode, WithRef } from "./types/nodes";
 
@@ -82,30 +88,15 @@ const getLayersForElement = (el: Element) => {
     const rect = getBoundingClientRect(el);
 
     if (rect.width >= 1 && rect.height >= 1) {
-      const fills: Paint[] = [];
-
-      const color = getRgb(computedStyle.backgroundColor);
-
-      if (color) {
-        const solidPaint: SolidPaint = {
-          type: "SOLID",
-          color: {
-            r: color.r,
-            g: color.g,
-            b: color.b,
-          },
-          opacity: color.a || 1,
-        };
-        fills.push(solidPaint);
-      }
+      const fills = backgroundPaints(computedStyle,rect.width,rect.height);
 
       const rectNode: WithRef<RectangleNode> = {
         type: "RECTANGLE",
         ref: el,
-        x: Math.round(rect.left),
-        y: Math.round(rect.top),
-        width: Math.round(rect.width),
-        height: Math.round(rect.height),
+        x: rect.left,
+        y: rect.top,
+        width: rect.width,
+        height: rect.height,
         fills,
       };
 
@@ -142,7 +133,7 @@ const getLayersForElement = (el: Element) => {
         rectNode.effects = shadowEffects;
       }
 
-      const borderRadii = getBorderRadii({ computedStyle });
+      const borderRadii = getBorderRadii({ computedStyle,width:rect.width,height:rect.height });
       Object.assign(rectNode, borderRadii);
 
       elementLayers.push(rectNode);
@@ -155,8 +146,13 @@ const getLayersForElement = (el: Element) => {
 export function htmlToFigma(
   selector: HTMLElement | string = "body",
   useFrames = false,
-  time = false
+  time = false,
+  sourceDocument?: Document,
+  options: Partial<LocalImportOptions> = {}
 ) {
+  const restore = sourceDocument ? setDomDocument(sourceDocument) : null;
+  const restoreDensity=setImageDensity(3);
+  try {
   if (time) {
     console.time("Parse dom");
   }
@@ -168,6 +164,8 @@ export function htmlToFigma(
 
   if (el) {
     processSvgUseElements(el);
+    materializeFormLabels(el);
+    splitSymbolRuns(el);
 
     const els = generateElements(el);
 
@@ -179,6 +177,10 @@ export function htmlToFigma(
     const textNodes = textNodesUnder(el);
 
     for (const node of textNodes) {
+      if(node.parentElement?.closest('svg,script,style,noscript'))continue;
+      if(node.parentElement && isHidden(node.parentElement))continue;
+      const icon=glyphLayer(node);
+      if(icon){layers.push(icon);continue;}
       const textNode = buildTextNode({ node });
       if (textNode) {
         layers.push(textNode);
@@ -187,14 +189,27 @@ export function htmlToFigma(
   }
 
   // TODO: send frame: { children: []}
+  const selected=el || document.body;
+  const isDocumentRoot=selected===document.body;
+  const selectedRect=selected.getBoundingClientRect();
+  const rootWidth=isDocumentRoot?window.innerWidth:selectedRect.width;
+  const rootHeight=isDocumentRoot?document.documentElement.scrollHeight:selectedRect.height;
+  const rootStyle=getComputedStyle(selected);
   const root: WithRef<FrameNode> = {
     type: "FRAME",
-    width: Math.round(window.innerWidth),
-    height: Math.round(document.documentElement.scrollHeight),
-    x: 0,
-    y: 0,
-    ref: document.body,
+    width: rootWidth,
+    height: rootHeight,
+    x: isDocumentRoot?0:selectedRect.left,
+    y: isDocumentRoot?0:selectedRect.top,
+    ref: selected,
+    fills: backgroundPaints(rootStyle,rootWidth,rootHeight),
+    ...getBorderRadii({computedStyle:rootStyle,width:rootWidth,height:rootHeight}),
   };
+  if(isDocumentRoot && (!Array.isArray(root.fills) || !root.fills.length))root.fills=backgroundPaints(getComputedStyle(document.documentElement),rootWidth,rootHeight);
+  if(!isDocumentRoot){
+    Object.assign(root,addStrokesFromBorder({computedStyle:rootStyle}));
+    const shadow=getShadowEffects({computedStyle:rootStyle});if(shadow)root.effects=shadow;
+  }
 
   layers.unshift(root);
 
@@ -210,4 +225,5 @@ export function htmlToFigma(
   }
 
   return framesLayers;
+  } finally {restoreDensity(); if (restore) restore(); }
 }

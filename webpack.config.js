@@ -2,6 +2,7 @@ const webpack = require("webpack");
 const HtmlWebpackInlineSourcePlugin = require("html-webpack-inline-source-plugin");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
 const path = require("path");
+const fs = require("fs");
 
 module.exports = (env, argv) => {
   const baseConfig = {
@@ -45,6 +46,13 @@ module.exports = (env, argv) => {
       },
       plugins: [
         ...baseConfig.plugins,
+        new webpack.DefinePlugin({
+          __LOCAL_HTML_PARSER__: JSON.stringify(
+            fs.existsSync(path.join(__dirname, 'dist/browser.js'))
+              ? fs.readFileSync(path.join(__dirname, 'dist/browser.js'), 'utf8')
+              : ''
+          ),
+        }),
         new HtmlWebpackPlugin({
           template: "./plugin/ui.html",
           filename: "ui.html",

@@ -1,91 +1,95 @@
-# Builder.io for Figma: AI generation, export to code, import from web
+# HTML Canvas · 本地网页导入
 
-<p align="center">
-  <img alt="Figma to HTML title" src="https://cdn.builder.io/api/v1/image/assets%2FYJIGb4i01jvw0SRdL5Bt%2Feafd8e1b9b904e56bfb21aac5b357820" />
-</p>
+将本地静态 HTML / ZIP 网站转换成可编辑的 Figma Design 图层。
 
-<p align="center">
-  Teach Figma how to speak code: generate designs via AI, convert designs to code, import from web.
-</p>
+Import local static HTML and ZIP websites into editable Figma Design layers. A lightweight, local-first adaptation of [Builder.io/figma-html](https://github.com/BuilderIO/figma-html), licensed under MIT.
 
-## How does it work
+![HTML Canvas](docs/images/cover-1920x1080.png)
 
-### Generate designs via AI
+## 功能
 
-1. [Install the plugin](https://www.figma.com/c/plugin/747985167520967365/HTML-To-Figma)
-2. Create an [OpenAI account](https://platform.openai.com/signup), grab your [OpenAI key](https://platform.openai.com/account/api-keys), make sure you have [billing enabled](https://platform.openai.com/account/billing/overview), and add your API key in the plugin
-3. Enter a prompt, and watch AI design in real time!
+- 导入 `.html` / `.htm`，支持多文件选择。
+- ZIP 内的多个页面、共享 CSS、嵌套 `@import`、相对路径图片和字体资源一起处理。
+- 按文件名命名页面，横向间隔 120px 排列，并避开画布已有内容。
+- 提供总体进度、缺失资源提示和失败回滚。
+- 尽量保留可编辑文本、字重、背景、渐变、圆角、SVG 及图片裁切。
+- 纯结构容器转换为组，背景、边框、阴影及裁切容器保留画框。
+- 当前插件入口无后端、统计服务、图片代理和网络权限。
 
-Troubleshooting: if having trouble with your OpenAI API calls, please follow [this guide](https://help.openai.com/en/articles/6891831-error-code-429-you-exceeded-your-current-quota-please-check-your-plan-and-billing-details)
+## 本地构建
 
-### Export designs to code
+建议使用 Node.js 22 和 npm。项目继承了旧版构建依赖，因此安装时需要 `--legacy-peer-deps`。
 
-1. [Install the plugin](https://www.figma.com/c/plugin/747985167520967365/HTML-To-Figma)
-2. Ensure all layers you want to import use autolayout as described [here](https://www.builder.io/c/docs/import-from-figma)
-3. Click the "get code" button to launch into the [Builder.io](https://www.builder.io) editor
-4. Make any final adjustments, and click "get code" at the top of Builder to view code output, or copy and paste it to content of a Builder account to publish live
-
-Supports many code outputs, such as React, Vue, Svelte, Qwik, Solid, plain HTML/CSS, and more via [Mitosis](https://github.com/builderio/mitosis)
-
-### Import webpages to Figma designs
-
-1. [Install the plugin](https://www.figma.com/c/plugin/747985167520967365/HTML-To-Figma)
-2. In Figma, open a new or existing document, then hit cmd+/ and search "html figma" and hit enter
-3. Enter a URL you want to import
-
-## Why?
-
-- Instantly convert designs into live webpages and code
-- Easily import real live site styles for a starting point for designs and prototypes
-- Quickly turn real site components into design components
-- Easy import from storybook, etc
-
-## Chrome Extension
-
-Want to capture a page behind an auth wall, or in a specific state you need to navigate to? Then the [chrome extension](https://chrome.google.com/webstore/detail/efjcmgblfpkhbjpkpopkgeomfkokpaim) is for you!
-
-## Using the library
-
-```js
-// npm install @builder.io/html-to-figma
-import { htmlToFigma } from "@builder.io/html-to-figma";
-const layers = htmlToFigma(document.body);
-// E.g. send these to the REST API, or generate a .figma.json file that can be uploaded through the Figma plugin
+```sh
+npm ci --legacy-peer-deps --ignore-scripts
+npm run build
 ```
 
-## Auto-layout Vectors
+Windows 也可双击 `build-windows.cmd`。构建脚本会为旧版 webpack 设置必要的兼容选项。
 
-When exporting Figma to Builder, the plugin requires all elements to be in auto-layout. However, it's not possible to auto-layout a vector. The alternative here is to use Figma's `rasterize selection` command on your vector. If the output of that is too low-resolution, then you can try this plugin: https://www.figma.com/community/plugin/837846252158418235/Flatten-Selection-to-Bitmap.
+在 Figma 桌面端打开设计文件，进入 Plugins → Development → Import plugin from manifest，选择项目根目录的 `manifest.json`。
 
-If you want the Builder end-result to have a vector, then consider this rasterized selection as a placeholder, and swap it back with an SVG in the Builder editor.
+如果你要发布自己的改版，请先在 Figma 创建新插件，并把分配的新 ID 写入 manifest；不要使用本仓库的插件 ID 发布。
 
-## Limitations
+## 如何导入
 
-Importing HTML layers to Figma is a best-effort process. Even getting 90% there can save you a ton of time, only having to clean up a few things.
+1. 运行 HTML Canvas，设置页面宽度，默认 1920px。
+2. 点击“选择 HTML / ZIP（可多选）”。
+3. 单文件 HTML 请内嵌样式和图片；独立资源请保持相对目录结构，一起压成 ZIP。
+4. 等待解析与图层生成，完成后画框一起出现在当前 Figma 页面。
 
-A few known limitations:
+[下载三页面测试 ZIP](examples/three-page-site.zip)，或查看 [示例网站源码](examples/site)。封面是功能示意，不是 Figma 实测截图。
 
-- not all element types are supported (e.g. iframe, pseudoelements)
-- not all CSS properties are supported or fully supported
-- not all types of media are supported (video, animated gifs, etc)
-- all fonts have to be uploaded to Figma or a best effort fallback will be used
+示例 ZIP 目录：
 
-If you find any issues or have feedback at all please [make an issue](https://github.com/BuilderIO/html-to-figma/issues/new)
+```text
+01-overview.html
+02-orders.html
+nested/03-products.htm
+assets/css/main.css
+assets/css/tokens.css
+assets/images/product-1.svg
+...
+```
 
-## Architecture
+## 限制
 
-- `builder.io/api/v1/html-to-figma`: API endpoint that converts a URL's layout to a Figma design. The logic of that endpoint lives in this repo, under [./lib/html-to-figma](./lib/html-to-figma).
-- `builder.io/api/v1/figma-to-builder`: API endpoint that converts a Figma design to a Builder content JSON. The logic of that endpoint lives in Builder's API.
+- 只支持静态页面，不执行原页面脚本；不自动运行 React/Vue 源码或遍历 SPA 路由。
+- 不捕获浏览器当前页面，不支持直接输入网址；外部资源不会加载，请一起打包。
+- HTML/CSS 支持是尽力还原，复杂滤镜、布局和字体可能与浏览器存在差异。
+- ZIP 内字体可以辅助页面渲染，但可编辑文字仍需要 Figma 中可用的匹配字体。
+- 不自动创建原型跳转，也不生成自动布局。
+- 部分图标与图片会栅格化，以保留外观。
+- 每个 ZIP：压缩后最大 32 MB，解压后最大 128 MB，单文件最大 32 MB，最多 1000 个条目、50 个 HTML 页面；不支持加密 ZIP。
 
-## DEVELOP
+## 测试
 
-Read [DEVELOP.md](./DEVELOP.md)
+```sh
+npm run test:local
+```
 
-<p align="center">
-   <a href="https://www.builder.io/m/developers">
-      <picture>
-         <source media="(prefers-color-scheme: dark)" srcset="https://user-images.githubusercontent.com/844291/230786554-eb225eeb-2f6b-4286-b8c2-535b1131744a.png">
-         <img width="250" alt="Made with love by Builder.io" src="https://user-images.githubusercontent.com/844291/230786555-a58479e4-75f3-4222-a6eb-74c5af953eac.png">
-       </picture>
-   </a>
-</p>
+覆盖 ZIP 资源打包、批量导入 UI、解析清理、字体匹配、临时构建与分组、图片裁切、背景及图标等八组检查。测试使用 Node DOM 解析和模拟浏览器 / Figma API；真实 Figma 显示效果仍需要人工回归。仓库不宣称已通过 Figma 审核。
+
+## 项目结构
+
+```text
+plugin/ui.tsx                      轻量 UI 入口
+plugin/code.ts                     Figma 插件主入口
+plugin/functions/zip-files.ts      ZIP 与资源内嵌
+plugin/functions/local-html.ts     静态 HTML 渲染
+plugin/functions/local-canvas-import.ts  临时构建、分组与批量提交
+lib/html-to-figma/                 HTML → 图层解析器
+local-test/                       本地回归检查
+tools/                            构建与发布打包脚本
+examples/                         三页面测试网站
+```
+
+`legacy-ui.tsx`、`legacy-code.ts`、旧 AI / 自动布局相关模块和浏览器扩展源码保留作历史参考，不属于当前插件的活动入口。安装依赖列表仍包含旧模块的开发依赖；生产包不加载其统计或代理逻辑。
+
+## 隐私与许可
+
+文件在插件内存中处理，当前 manifest 声明 `No network access`。导入结果写入 Figma 文档后，仍由 Figma 正常存储、同步和共享。详见 [隐私说明](PRIVACY.md)。
+
+本项目基于 Builder.io 的 MIT 项目修改，保留原版权和 [MIT 许可证](LICENSE.md)。这不是 Figma、Builder.io 或 html.to.design 的官方产品。
+
+反馈可提交 GitHub Issue，或联系 l1781874099@gmail.com。

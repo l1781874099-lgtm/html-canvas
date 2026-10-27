@@ -1,5 +1,25 @@
-plugin/**/*.js
-node_modules
-dist
+# Dependencies and generated output
+node_modules/
+dist/
+release/
+*.log
+local-test/smoke.bundle.js
 
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+.npmrc
+
+# Machine-specific working notes
+本地实验说明.md
+
+# OS/editor files
 **/.DS_Store
+Thumbs.db
+.vscode/
+.idea/

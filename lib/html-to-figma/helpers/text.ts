@@ -1,3 +1,4 @@
+import { document, Node, getComputedStyle } from "../environment";
 import { WithRef } from "../types/nodes";
 import { isHidden } from "./nodes";
 import { fastClone } from "./object";
@@ -23,6 +24,7 @@ export const buildTextNode = ({
     const range = document.createRange();
     range.selectNode(node);
     const rect = fastClone(range.getBoundingClientRect());
+    const lineCount = new Set(Array.from(range.getClientRects()).filter(r => r.width > 0).map(r => Math.round(r.top))).size;
     const lineHeight = parseUnits(computedStyles.lineHeight);
     range.detach();
     if (lineHeight && rect.height < lineHeight.value) {
@@ -38,7 +40,7 @@ export const buildTextNode = ({
       x: Math.round(rect.left),
       ref: node,
       y: Math.round(rect.top),
-      width: Math.round(rect.width),
+      width: Math.ceil(rect.width) + 1,
       height: Math.round(rect.height),
       type: "TEXT",
       characters: trimmedText.replace(/\s+/g, " "),
@@ -55,7 +57,7 @@ export const buildTextNode = ({
           g: rgb.g,
           b: rgb.b,
         },
-        opacity: rgb.a || 1,
+        opacity: rgb.a ?? 1,
       } as SolidPaint);
     }
 
@@ -95,6 +97,9 @@ export const buildTextNode = ({
       // const font = computedStyles.fontFamily.split(/\s*,\s*/);
       (textNode as any).fontFamily = computedStyles.fontFamily;
     }
+    (textNode as any).fontWeight = Number(computedStyles.fontWeight) || (computedStyles.fontWeight === 'bold' ? 700 : 400);
+    (textNode as any).fontStyle = computedStyles.fontStyle;
+    (textNode as any).singleLine = lineCount <= 1;
 
     if (
       ["underline", "strikethrough"].includes(computedStyles.textDecoration)

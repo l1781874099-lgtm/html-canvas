@@ -1,3 +1,4 @@
+import { getComputedStyle } from "../environment";
 export type Direction = "left" | "right" | "top" | "bottom";
 
 function getDirectionMostOfElements(direction: Direction, elements: Element[]) {

@@ -42,8 +42,8 @@ async function decode(
   const url = URL.createObjectURL(new Blob([bytes]));
   const image = await new Promise<HTMLImageElement>((resolve, reject) => {
     const img = new Image();
-    img.onload = () => resolve(img);
-    img.onerror = () => reject();
+    img.onload = () => {URL.revokeObjectURL(url);resolve(img);};
+    img.onerror = () => {URL.revokeObjectURL(url);reject(new Error('图片无法解码'));};
     img.src = url;
   });
   canvas.width = image.width;

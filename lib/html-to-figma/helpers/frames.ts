@@ -1,3 +1,4 @@
+import { document, Node, getComputedStyle, Element } from "../environment";
 import { LayerNode, WithRef } from "../types/nodes";
 import { getBoundingClientRect } from "./dimensions";
 import { hasChildren, getDepth, getParents, traverse } from "./nodes";

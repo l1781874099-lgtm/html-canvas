@@ -1,7 +1,9 @@
+import { HTMLElement, SVGElement, getComputedStyle } from "../environment";
 import { LayerNode, WithRef } from "../types/nodes";
 import { Dimensions, Direction } from "./dimensions";
 import { traverse } from "./nodes";
 import { getRgb, parseBoxShadowStr, parseUnits } from "./parsers";
+import { cornerRadius } from './visual-paints';
 
 function setData(
   node: LayerNode & { data?: { [index: string]: string } },
@@ -225,8 +227,12 @@ export function addConstraints(layers: LayerNode[]) {
 
 export const getBorderRadii = ({
   computedStyle,
+  width = parseFloat(computedStyle.width) || 0,
+  height = parseFloat(computedStyle.height) || 0,
 }: {
   computedStyle: CSSStyleDeclaration;
+  width?: number;
+  height?: number;
 }): Partial<
   Pick<
     RectangleNode,
@@ -236,16 +242,16 @@ export const getBorderRadii = ({
     | "bottomRightRadius"
   >
 > => {
-  const topLeft = parseUnits(computedStyle.borderTopLeftRadius);
-  const topRight = parseUnits(computedStyle.borderTopRightRadius);
-  const bottomRight = parseUnits(computedStyle.borderBottomRightRadius);
-  const bottomLeft = parseUnits(computedStyle.borderBottomLeftRadius);
+  const topLeft = cornerRadius(computedStyle.borderTopLeftRadius,width,height);
+  const topRight = cornerRadius(computedStyle.borderTopRightRadius,width,height);
+  const bottomRight = cornerRadius(computedStyle.borderBottomRightRadius,width,height);
+  const bottomLeft = cornerRadius(computedStyle.borderBottomLeftRadius,width,height);
 
   const borderRadii = {
-    ...(topLeft ? { topLeftRadius: topLeft.value } : {}),
-    ...(topRight ? { topRightRadius: topRight.value } : {}),
-    ...(bottomRight ? { bottomRightRadius: bottomRight.value } : {}),
-    ...(bottomLeft ? { bottomLeftRadius: bottomLeft.value } : {}),
+    ...(topLeft !== undefined ? { topLeftRadius: topLeft } : {}),
+    ...(topRight !== undefined ? { topRightRadius: topRight } : {}),
+    ...(bottomRight !== undefined ? { bottomRightRadius: bottomRight } : {}),
+    ...(bottomLeft !== undefined ? { bottomLeftRadius: bottomLeft } : {}),
   };
   return borderRadii;
 };
@@ -291,7 +297,7 @@ export function getStrokesRectangle({
           const fill: SolidPaint = {
             type: "SOLID",
             color: { r: rgb.r, b: rgb.b, g: rgb.g },
-            opacity: rgb.a || 1,
+            opacity: rgb.a ?? 1,
           };
           const layer: WithRef<RectangleNode> = {
             ref: el,
@@ -339,10 +345,10 @@ export const addStrokesFromBorder = ({
               {
                 type: "SOLID",
                 color: { r: rgb.r, b: rgb.b, g: rgb.g },
-                opacity: rgb.a || 1,
+                opacity: rgb.a ?? 1,
               },
             ],
-            strokeWeight: Math.round(parseFloat(borderWidth)),
+            strokeWeight: parseFloat(borderWidth),
           };
         }
       }
@@ -354,12 +360,12 @@ export const getShadowEffects = ({
   computedStyle: { boxShadow },
 }: {
   computedStyle: CSSStyleDeclaration;
-}): ShadowEffect[] | undefined => {
+}): DropShadowEffect[] | undefined => {
   if (boxShadow && boxShadow !== "none") {
     const parsed = parseBoxShadowStr(boxShadow);
     const color = getRgb(parsed.color);
     if (color) {
-      const shadowEffect: ShadowEffect = {
+      const shadowEffect: DropShadowEffect = {
         color,
         type: "DROP_SHADOW",
         radius: parsed.blurRadius,

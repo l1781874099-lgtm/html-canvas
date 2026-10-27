@@ -1,3 +1,4 @@
+import { document, Node, NodeFilter, getComputedStyle } from "../environment";
 import { LayerNode } from "../types/nodes";
 
 export const hasChildren = (node: LayerNode): node is ChildrenMixin =>

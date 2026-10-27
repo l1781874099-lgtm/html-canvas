@@ -1,7 +1,7 @@
 {
-  "name": "@builder.io/html-to-figma",
-  "version": "0.0.5-3",
-  "description": "Convert HTML to Figma and Figma to code",
+  "name": "html-canvas-local-import",
+  "version": "0.1.0-rc.1",
+  "description": "Import local static HTML and ZIP websites into editable Figma Design layers",
   "main": "dist/main.js",
   "types": "dist/lib/html-to-figma/index.d.ts",
   "exports": {
@@ -15,13 +15,12 @@
   "scripts": {
     "dev:lib": "tsc -w",
     "dev": "NODE_OPTIONS=--openssl-legacy-provider NODE_ENV=development webpack --mode=development --watch",
-    "build": "tsc && NODE_OPTIONS=--openssl-legacy-provider NODE_ENV=production webpack --mode=production",
-    "release:patch": "npm version patch && npm run build && npm publish",
-    "release:dev": "npm version prerelease && npm run build && npm publish --tag dev"
+    "build": "node tools/build.cjs",
+    "test:local": "node local-test/zip-files-unit.cjs && node local-test/batch-ui-unit.cjs && node local-test/renderer-unit.cjs && node local-test/font-import-unit.cjs && node local-test/staged-import-unit.cjs && node local-test/image-layout-unit.cjs && node local-test/visual-paints-unit.cjs && node local-test/glyph-unit.cjs"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/builderio/html-to-figma"
+    "url": "https://github.com/l1781874099-lgtm/html-canvas.git"
   },
   "author": "",
   "license": "MIT",
@@ -42,6 +41,7 @@
     "file-type": "^12.2.0",
     "html-webpack-inline-source-plugin": "0.0.10",
     "html-webpack-plugin": "^3.2.0",
+    "linkedom": "^0.18.12",
     "mobx": "^5.13.0",
     "mobx-react": "^6.1.3",
     "react": "^16.8.6",
@@ -60,10 +60,15 @@
     "@emotion/core": "^10.0.28",
     "@types/lodash": "^4.14.168",
     "@types/pako": "^1.0.1",
+    "fflate": "^0.8.3",
     "lodash": "^4.17.21",
     "pako": "^1.0.11",
     "react-intl": "^5.17.2",
     "traverse": "^0.6.6",
     "uuid": "^8.3.2"
+  },
+  "private": true,
+  "bugs": {
+    "url": "https://github.com/l1781874099-lgtm/html-canvas/issues"
   }
 }

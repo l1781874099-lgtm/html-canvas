@@ -2,7 +2,7 @@ import * as React from "react";
 import { Textarea } from "./textarea";
 import { Button, CircularProgress } from "@material-ui/core";
 import { Input } from "./input";
-import { ClientStorage, apiHost, getImageFills, processImages } from "../ui";
+import { ClientStorage, apiHost, getImageFills, processImages } from "../legacy-ui";
 import { settings } from "../constants/settings";
 import { traverseLayers } from "../functions/traverse-layers";
 import * as amplitude from "../functions/track";
@@ -57,7 +57,7 @@ export function AiImport(props: {
   const abortControllerRef = React.useRef<AbortController | null>(null);
   const [previews, setPreviews] = React.useState(defaultPreviews());
   const images = React.useRef<string[]>(defaultImages());
-  const [prompt, setPrompt] = React.useState("a homepage hero");
+  const [prompt, setPrompt] = React.useState("一个网站首页的首屏区域");
   const [style, setStyle] = React.useState("everlane.com");
   const [openAiKey, setOpenAiKey] = React.useState(
     props.clientStorage?.openAiKey
@@ -75,6 +75,7 @@ export function AiImport(props: {
     function handler(e: MessageEvent) {
       const { data: rawData, source } = e as MessageEvent;
       const data = rawData.pluginMessage;
+      if (!data) return;
 
       if (data.type === "doneLoading") {
         setLoading(false);
@@ -158,7 +159,7 @@ export function AiImport(props: {
   async function onSubmit(e: React.FormEvent | React.KeyboardEvent) {
     e.preventDefault();
     setError(null);
-    setLoading("Generating...");
+    setLoading("正在生成……");
 
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
@@ -228,7 +229,7 @@ export function AiImport(props: {
       console.error("Error fetching previews: ", err);
       setError(
         `
-        We had an issue generating results. Please make sure you have a working internet connection and try again, and if this issue persists please let us know at https://github.com/BuilderIO/figma-html/issues
+        生成失败。请检查网络连接后重试。若持续失败，可前往 https://github.com/BuilderIO/figma-html/issues 反馈。
       `.trim()
       );
     } finally {
@@ -250,9 +251,9 @@ export function AiImport(props: {
       >
         <form onSubmit={onSubmit}>
           <h4>
-            Prompt{" "}
+            需求描述{" "}
             <HelpTooltip>
-              <>Be as detailed and specific as possible.</>
+              <>请尽量详细、具体地描述需求。</>
             </HelpTooltip>
           </h4>
           <Textarea
@@ -264,48 +265,47 @@ export function AiImport(props: {
                 onSubmit(e);
               }
             }}
-            placeholder="What do you want to create?"
+            placeholder="你想创建什么样的设计？"
             value={prompt}
             onChange={(e) => setPrompt(e.currentTarget.value)}
             name="prompt"
           />
           <h4>
-            Style
+            参考风格
             <HelpTooltip>
               <>
-                Enter a well know site like 'jcrew.com'. This will guide the
-                look and feel and be used as a basis for any images
+                输入一个熟悉的网站，例如 jcrew.com，作为视觉风格和图片的参考。
               </>
             </HelpTooltip>
           </h4>
           <Input
-            placeholder="Use a well recognized site, like 'jcrew.com'"
+            placeholder="输入参考网站，例如 jcrew.com"
             value={style}
             onChange={(e) => setStyle(e.currentTarget.value)}
             name="style"
           />
           <h4>
-            OpenAI Key
+            OpenAI API 密钥
             <HelpTooltip interactive>
               <>
-                Please{" "}
+                请先在{" "}
                 <TooltipTextLink href="https://platform.openai.com/signup">
-                  create an account
+                  注册账号
                 </TooltipTextLink>{" "}
-                with{" "}
+                平台{" "}
                 <TooltipTextLink href="https://platform.openai.com/overview">
                   OpenAI
                 </TooltipTextLink>{" "}
-                and provide then grab your{" "}
+                然后获取你的{" "}
                 <TooltipTextLink href="https://platform.openai.com/account/api-keys">
-                  API key
+                  API 密钥
                 </TooltipTextLink>{" "}
-                and put it here. Be sure that you have{" "}
+                并填写到这里。请确认已{" "}
                 <TooltipTextLink href="https://platform.openai.com/account/billing/overview">
-                  billing
+                  账单
                 </TooltipTextLink>{" "}
                 <TooltipTextLink href="https://help.openai.com/en/articles/6891831-error-code-429-you-exceeded-your-current-quota-please-check-your-plan-and-billing-details">
-                  turned on
+                  启用计费
                 </TooltipTextLink>
                 .
               </>
@@ -327,7 +327,7 @@ export function AiImport(props: {
             fullWidth
             color="primary"
           >
-            Generate
+            生成设计
           </Button>
           <style>{`h4 { margin: 11px 0 7px }`}</style>
         </form>
@@ -376,7 +376,7 @@ export function AiImport(props: {
           }}
         >
           <HelpOutline style={{ marginRight: 10 }} />
-          Learn how to use this feature
+          查看使用说明
         </TextLink>
       </div>
       {hasPreviews() && (
@@ -414,7 +414,7 @@ export function AiImport(props: {
                 border: "1px solid #ccc",
               }}
               onClick={async () => {
-                setLoading("Importing...");
+                setLoading("正在导入……");
                 setPreviews(defaultPreviews());
                 abortControllerRef.current?.abort();
                 abortControllerRef.current = new AbortController();
