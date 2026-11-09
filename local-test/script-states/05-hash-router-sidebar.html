@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><title>05 侧边栏 hash 路由（li > a href="#/..."）</title>
+<style>
+body{margin:0;font-family:"Microsoft YaHei",sans-serif;display:flex;min-height:100vh;background:#f5f6f8}
+aside{width:220px;background:#1e2235;color:#aab0c6;padding:24px 0}
+aside h3{color:#fff;margin:0 24px 20px}
+ul{list-style:none;margin:0;padding:0}
+li a{display:block;padding:12px 24px;color:inherit;text-decoration:none}
+li.current a{background:#2d3352;color:#fff;border-left:3px solid #6c8cff}
+main{flex:1;padding:32px}
+main h1{margin:0 0 16px}.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
+.tile{background:#fff;border-radius:10px;padding:18px;box-shadow:0 2px 8px rgba(0,0,0,.05)}
+</style></head><body>
+<aside><h3>管理后台</h3><ul id="menu">
+  <li><a href="#/home">首页</a></li><li><a href="#/users">用户管理</a></li><li><a href="#/reports">数据报表</a></li><li><a href="#/settings">系统设置</a></li>
+</ul></aside>
+<main id="view"></main>
+<script>
+const pages={
+  '/home':['欢迎回来',['今日访问 3,201','新增用户 128','待办事项 6','系统消息 2']],
+  '/users':['用户管理',['张三 · 管理员','李四 · 编辑','王五 · 访客','赵六 · 编辑']],
+  '/reports':['数据报表',['月活 48,210','留存 63%','转化 4.2%','客单 ¥86']],
+  '/settings':['系统设置',['站点名称：示例','语言：简体中文','时区：UTC+8','通知：已开启']]
+};
+function route(){
+  const path=(location.hash||'#/home').slice(1),page=pages[path]||pages['/home'];
+  document.querySelectorAll('#menu li').forEach(li=>li.classList.toggle('current',li.firstElementChild.getAttribute('href')==='#'+path));
+  document.getElementById('view').innerHTML='<h1>'+page[0]+'</h1><div class="grid">'+page[1].map(t=>'<div class="tile">'+t+'</div>').join('')+'</div>';
+}
+addEventListener('hashchange',route);route();
+</script></body></html>

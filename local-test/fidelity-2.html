@@ -1,0 +1,102 @@
+﻿<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<style>
+  body { margin: 0; font-family: Arial, "Microsoft YaHei", sans-serif; background: #f4f5f7; color: #222; }
+  section { position: relative; margin: 24px; padding: 20px; background: #fff; border-radius: 12px; display: flex; gap: 28px; flex-wrap: wrap; align-items: flex-start; }
+  h2 { width: 100%; margin: 0; font-size: 16px; }
+  .box { width: 120px; height: 80px; border-radius: 10px; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 14px; }
+  .rot { background: #4f7cff; transform: rotate(12deg); }
+  .rot-prop { background: #ff7a45; rotate: -20deg; }
+  .scale { background: #13c2c2; transform: scale(1.3); transform-origin: left top; }
+  .skew { background: #722ed1; transform: skewX(-15deg); }
+  .nested { width: 160px; height: 110px; background: #ffd666; transform: rotate(-8deg); border-radius: 12px; padding: 12px; box-sizing: border-box; }
+  .nested .inner { width: 90px; height: 40px; background: #fa541c; border-radius: 6px; transform: rotate(16deg); color: #fff; font-size: 12px; display: flex; align-items: center; justify-content: center; }
+  .anchor { width: 220px; height: 120px; background: #e6f4ff; border-radius: 10px; position: relative; }
+  .center { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); background: #1677ff; color: #fff; padding: 8px 14px; border-radius: 16px; font-size: 13px; }
+  .svgrot { transform: rotate(30deg); }
+  .spin rect { transform: rotate(20deg); transform-origin: 20px 20px; }
+  .pie { width: 100px; height: 100px; border-radius: 50%; background: conic-gradient(#4f7cff 0 40%, #ffc53d 0 70%, #ff4d4f 0); }
+  .ring { width: 100px; height: 100px; border-radius: 50%; background: conic-gradient(from 90deg, #52c41a, #1677ff, #52c41a); }
+  .stripes { width: 160px; height: 80px; border-radius: 8px; background: repeating-linear-gradient(45deg, #ffd8bf 0 10px, #fff7e6 10px 20px); }
+  .grid { width: 160px; height: 80px; border: 1px solid #ddd; background-image: linear-gradient(#e5e5e5 1px, transparent 1px), linear-gradient(90deg, #e5e5e5 1px, transparent 1px); background-size: 16px 16px; }
+  .dots { width: 160px; height: 80px; background: radial-gradient(circle, #91caff 2px, transparent 2.5px) 0 0 / 14px 14px, #f0f5ff; }
+  .rings { width: 100px; height: 100px; background: repeating-radial-gradient(circle, #fff 0 6px, #ffccc7 6px 12px); }
+  .circle-clip { width: 90px; height: 90px; background: linear-gradient(135deg, #36cfc9, #597ef7); clip-path: circle(50%); }
+  .poly { width: 110px; height: 90px; background: linear-gradient(#ff85c0, #b37feb); clip-path: polygon(50% 0, 100% 100%, 0 100%); }
+  .inset-clip { width: 120px; height: 80px; background: #95de64; clip-path: inset(10px 20px round 12px); }
+  .outline { width: 120px; height: 44px; border-radius: 8px; background: #fff; outline: 2px solid #1677ff; outline-offset: 3px; display: flex; align-items: center; justify-content: center; font-size: 13px; }
+  .blend-wrap { width: 160px; height: 90px; background: linear-gradient(90deg, #ff4d4f, #36cfc9); position: relative; }
+  .blend { position: absolute; left: 30px; top: 15px; width: 100px; height: 60px; background: #888; mix-blend-mode: multiply; }
+  .gray { width: 100px; height: 70px; filter: grayscale(1); border-radius: 8px; }
+  .shadowed { filter: drop-shadow(0 4px 6px rgba(0,0,0,.35)); }
+  .t { margin: 0; width: 220px; font-size: 14px; line-height: 22px; background: #fafafa; }
+  .center { text-align: center; }
+  .clamp { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .ell { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: bold; font-size: 16px; }
+  .caps { font-variant-caps: small-caps; font-size: 18px; }
+  .pre { white-space: pre-wrap; font-family: Consolas, monospace; font-size: 13px; }
+  .normal-lh { line-height: normal; font-size: 15px; }
+  .doc { counter-reset: chapter; display: block; }
+  .chapter { counter-reset: sub; counter-increment: chapter; margin-bottom: 8px; }
+  .chapter h3 { margin: 0; font-size: 15px; }
+  .chapter h3::before { content: "第" counter(chapter, simp-chinese-informal) "章 "; color: #1677ff; }
+  .sub { margin: 2px 0 2px 16px; font-size: 13px; }
+  .sub::before { counter-increment: sub; content: counter(chapter) "." counter(sub) " "; color: #999; }
+  .olnest, .olnest ol { counter-reset: item; list-style: none; padding-left: 18px; margin: 0; }
+  .olnest li::before { counter-increment: item; content: counters(item, ".") ") "; color: #fa541c; }
+  .steps { display: flex; gap: 24px; counter-reset: step 0; margin-top: 8px; }
+  .steps span::before { counter-increment: step; content: counter(step, upper-roman); display: inline-block; width: 22px; height: 22px; line-height: 22px; text-align: center; border-radius: 50%; background: #1677ff; color: #fff; margin-right: 6px; font-size: 12px; }
+</style>
+</head>
+<body>
+<section>
+  <h2>变换 transforms</h2>
+  <div class="box rot">rotate 12deg</div>
+  <div class="box rot-prop">rotate prop</div>
+  <div class="box scale">scale 1.3</div>
+  <div class="box skew">skew</div>
+  <div class="nested"><div class="inner">嵌套旋转</div></div>
+  <div class="anchor"><div class="center">居中 translate</div></div>
+  <svg class="svgrot" width="60" height="60" viewBox="0 0 24 24"><path d="M12 2l3 7h7l-5.5 4.5L18 21l-6-4-6 4 1.5-7.5L2 9h7z" fill="#faad14"/></svg>
+  <svg class="spin" width="40" height="40" viewBox="0 0 40 40"><rect x="8" y="8" width="24" height="24" fill="#2f54eb"/></svg>
+</section>
+<section>
+  <h2>渐变 gradients</h2>
+  <div class="pie"></div>
+  <div class="ring"></div>
+  <div class="stripes"></div>
+  <div class="grid"></div>
+  <div class="dots"></div>
+  <div class="rings"></div>
+</section>
+<section>
+  <h2>裁切 / 描边 / 混合 / 滤镜</h2>
+  <div class="circle-clip"></div>
+  <div class="poly"></div>
+  <div class="inset-clip"></div>
+  <div class="outline">outline</div>
+  <div class="blend-wrap"><div class="blend"></div></div>
+  <img class="gray" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='70'%3E%3Crect width='50' height='70' fill='%23f5222d'/%3E%3Crect x='50' width='50' height='70' fill='%2352c41a'/%3E%3C/svg%3E">
+  <svg class="shadowed" width="60" height="60" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="#ff7a45"/></svg>
+</section>
+<section>
+  <h2>文字换行 text lines</h2>
+  <p class="t center">居中的多行文字会在浏览器的换行位置被锁定，Figma 不会因为字体度量不同而重新换行。</p>
+  <p class="t clamp">这是一段被 line-clamp 截断为两行的说明文字，第三行以后的内容会被隐藏，并在第二行末尾显示省略号，这里再多写一点内容。</p>
+  <p class="t ell">单行省略号 text-overflow: ellipsis 的标题会被截断显示</p>
+  <p class="t caps">Small Caps Heading</p>
+  <pre class="t pre">pre-wrap 保留空格    和
+换行，同时    长行会在边界处自动折行显示。</pre>
+  <p class="t normal-lh">line-height: normal 的多行文字也应该和浏览器保持一样的行距，即使字体不同。</p>
+</section>
+<section class="doc">
+  <h2>CSS 计数器 counters</h2>
+  <div class="chapter"><h3>概述</h3><p class="sub">背景</p><p class="sub">目标</p></div>
+  <div class="chapter"><h3>设计</h3><p class="sub">架构</p><p class="sub">接口</p><p class="sub">数据</p></div>
+  <ol class="olnest"><li>一级<ol><li>二级</li><li>二级<ol><li>三级</li></ol></li></ol></li><li>一级</li></ol>
+  <div class="steps"><span>注册</span><span>验证</span><span>完成</span></div>
+</section>
+</body>
+</html>

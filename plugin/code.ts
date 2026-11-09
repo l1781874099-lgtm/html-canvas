@@ -63,6 +63,11 @@ function assign(node:any,data:any){
   }
 }
 figma.ui.onmessage=async(msg:any)=>{
+  if(msg.type==='listFonts'){
+    const fonts=await figma.listAvailableFontsAsync();
+    figma.ui.postMessage({type:'fontList',families:Array.from(new Set(fonts.map(font=>font.fontName.family)))});
+    return;
+  }
   if(msg.type!=='import' || !msg.localHtml)return;
   await importLocalCanvas(msg,{
     assign,images:processImages,

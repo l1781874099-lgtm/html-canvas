@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><title>07 两按钮开关（仅背景色区分）+ 分页（事件委托）</title>
+<style>
+body{margin:0;font-family:"Microsoft YaHei",sans-serif;background:#f8fafc;color:#0f172a}
+.wrap{width:900px;margin:40px auto}
+.toggle{display:inline-flex;border:1px solid #cbd5e1;border-radius:8px;overflow:hidden;margin-bottom:18px}
+.toggle button{border:0;padding:8px 22px;font-size:14px;cursor:pointer}
+.bg-blue{background:#2563eb;color:#fff;font-weight:600}.bg-plain{background:transparent;color:#475569}
+.items{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px}
+.it{background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:16px}
+.pager{display:flex;gap:6px}.pager span{min-width:34px;text-align:center;padding:6px 0;border-radius:6px;cursor:pointer;border:1px solid #e2e8f0;background:#fff;color:#334155}
+.pager span.bg-blue{border-color:#2563eb}
+</style></head><body>
+<div class="wrap">
+  <div class="toggle" id="toggle"></div>
+  <div class="items" id="items"></div>
+  <div class="pager" id="pager"></div>
+</div>
+<script>
+let mode='月度',page=1;
+function render(){
+  document.getElementById('toggle').innerHTML=['月度','年度'].map(m=>'<button data-mode="'+m+'" class="'+(m===mode?'bg-blue':'bg-plain')+'">'+m+'</button>').join('');
+  document.getElementById('items').innerHTML=Array.from({length:6},(_,i)=>'<div class="it">'+mode+'报表 #'+((page-1)*6+i+1)+'</div>').join('');
+  document.getElementById('pager').innerHTML=[1,2,3,4].map(p=>'<span data-page="'+p+'" class="'+(p===page?'bg-blue':'')+'">'+p+'</span>').join('');
+}
+document.body.addEventListener('click',e=>{const m=e.target.closest('[data-mode]'),p=e.target.closest('[data-page]');if(m){mode=m.dataset.mode;page=1}if(p)page=Number(p.dataset.page);if(m||p)render()});
+render();
+</script></body></html>

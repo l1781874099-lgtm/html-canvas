@@ -89,6 +89,10 @@ export function inlineArchivePage(name:string,files:Map<string,Uint8Array>):Impo
   doc.querySelectorAll('[style]').forEach(el=>el.setAttribute('style',rewriteCss(el.getAttribute('style') || '',name)));
   doc.querySelectorAll('img').forEach(el=>{
     const picture=el.parentElement?.tagName.toLowerCase()==='picture'?el.parentElement:null;
+    // Lazy-load scripts never run; their real source must be packed too.
+    const lazy=el.getAttribute('data-src') || el.getAttribute('data-original') || el.getAttribute('data-lazy-src');
+    if(lazy && (!el.getAttribute('src') || /^data:(,|image\/gif)/i.test(el.getAttribute('src')!)))el.setAttribute('src',lazy);
+    if(el.getAttribute('data-srcset') && !el.getAttribute('srcset'))el.setAttribute('srcset',el.getAttribute('data-srcset')!);
     let srcset=el.getAttribute('srcset') || '';
     if(picture){const source=Array.from(picture.querySelectorAll('source')).find(s=>!s.getAttribute('media'));if(source)srcset=source.getAttribute('srcset') || srcset;}
     if(srcset && !/^\s*data:/i.test(srcset)){

@@ -1,0 +1,9 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><title>图层预览</title>
+<body style="margin:0;font:12px Arial;background:#ddd">
+<div id="status" style="padding:6px">rendering…</div>
+<div id="panes" style="display:flex;gap:16px;align-items:flex-start;padding:0 8px">
+  <div><div>原始 HTML</div><iframe id="original" sandbox="allow-same-origin" style="border:0;background:#fff"></iframe></div>
+  <div><div>解析结果</div><div id="preview" style="position:relative;background:#fff"></div></div>
+</div>
+<script>document.write('<script src="preview.bundle.js?' + Date.now() + '"><\/script>');</script>
+</body></html>

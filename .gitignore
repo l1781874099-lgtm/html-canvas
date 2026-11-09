@@ -4,6 +4,9 @@ dist/
 release/
 *.log
 local-test/smoke.bundle.js
+local-test/preview.bundle.js
+local-test/dashboard-tmp.html
+local-test/dashboard-in-tmp.html
 
 # Local configuration and secrets
 .env

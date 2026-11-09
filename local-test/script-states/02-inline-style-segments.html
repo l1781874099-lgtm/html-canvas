@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><title>02 内联样式分段按钮（无 class / aria）</title>
+<style>
+body{margin:0;font-family:"Microsoft YaHei",sans-serif;background:#0b1730;color:#dbe8ff}
+.panel{width:900px;margin:50px auto;background:#10224a;border:1px solid #1f3d7a;border-radius:12px;padding:24px}
+h2{margin:0 0 16px;font-size:20px}
+.row{display:flex;align-items:center;gap:12px;margin:10px 0}
+.row .name{width:80px}.row .bar{height:14px;border-radius:7px}.row .val{width:60px;text-align:right}
+</style></head><body>
+<div class="panel">
+  <h2>区域排行</h2>
+  <div id="seg" style="display:flex;gap:8px;margin-bottom:18px"></div>
+  <div id="list"></div>
+</div>
+<script>
+const metrics={人口:[['东区',92],['西区',81],['南区',66],['北区',54]],面积:[['北区',88],['南区',70],['西区',52],['东区',31]],GDP:[['西区',95],['东区',90],['北区',47],['南区',40]],增速:[['南区',76],['北区',74],['东区',60],['西区',58]]};
+let current='人口';
+function setMetric(k){current=k;render()}
+function render(){
+  document.getElementById('seg').innerHTML=Object.keys(metrics).map(k=>'<span onclick="setMetric(\''+k+'\')" style="cursor:pointer;padding:4px 14px;border-radius:14px;font-size:13px;'+(k===current?'background:#38c6ff;color:#06203d;font-weight:700':'background:transparent;color:#8fb3e8;border:1px solid #2e5598')+'">'+k+'</span>').join('');
+  document.getElementById('list').innerHTML=metrics[current].map(([n,v],i)=>'<div class="row"><span class="name">'+(i+1)+'. '+n+'</span><div class="bar" style="width:'+v*6+'px;background:linear-gradient(90deg,#1fd1a5,#38c6ff)"></div><span class="val">'+v+'</span></div>').join('');
+}
+render();
+</script></body></html>

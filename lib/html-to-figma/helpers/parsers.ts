@@ -7,7 +7,7 @@ export const parseUnits = (str?: string | null): null | Unit => {
   if (!str) {
     return null;
   }
-  const match = str.match(/([\d\.]+)px/);
+  const match = str.match(/(-?[\d\.]+)px/);
   const val = match?.[1];
   if (val) {
     return {
@@ -38,6 +38,41 @@ export function getRgb(colorString?: string | null) {
     if(components.every(v=>Number.isFinite(parseFloat(v))))return {r:channel(components[0]),g:channel(components[1]),b:channel(components[2]),a:Math.max(0,Math.min(1,alpha))};
   }
   return null;
+}
+
+export interface ParsedShadow {
+  inset: boolean;
+  offsetX: number;
+  offsetY: number;
+  blurRadius: number;
+  spreadRadius: number;
+  color: { r: number; g: number; b: number; a: number };
+}
+
+// Computed `box-shadow` / `text-shadow` lists, e.g.
+// "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px, rgb(245, 158, 11) 0px 0px 0px 3px inset".
+export function parseShadowList(value?: string | null): ParsedShadow[] {
+  if (!value || value === "none") return [];
+  const shadows: ParsedShadow[] = [];
+  let depth = 0, start = 0;
+  const parts: string[] = [];
+  for (let i = 0; i < value.length; i++) {
+    if (value[i] === "(") depth++;
+    else if (value[i] === ")") depth--;
+    else if (value[i] === "," && depth === 0) { parts.push(value.slice(start, i)); start = i + 1; }
+  }
+  parts.push(value.slice(start));
+  for (const part of parts) {
+    let rest = part.trim();
+    const colorMatch = rest.match(/(rgba?\([^)]*\)|hsla?\([^)]*\)|#[\da-f]{3,8}\b|\b(?:transparent|black|white|red|blue|green)\b)/i);
+    const color = getRgb(colorMatch ? colorMatch[1] : "rgb(0, 0, 0)");
+    if (colorMatch) rest = rest.replace(colorMatch[1], " ");
+    const inset = /\binset\b/.test(rest);
+    const lengths = rest.replace(/\binset\b/, " ").trim().split(/\s+/).filter(Boolean).map(v => parseFloat(v) || 0);
+    if (!color || lengths.length < 2) continue;
+    shadows.push({ inset, offsetX: lengths[0], offsetY: lengths[1], blurRadius: lengths[2] || 0, spreadRadius: lengths[3] || 0, color });
+  }
+  return shadows;
 }
 
 interface ParsedBoxShadow {

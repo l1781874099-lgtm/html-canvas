@@ -1,14 +1,15 @@
 # HTML Canvas · 本地网页导入
 
-将本地静态 HTML / ZIP 网站转换成可编辑的 Figma Design 图层。
+将本地 HTML / ZIP 网站转换成可编辑的 Figma Design 图层。
 
-Import local static HTML and ZIP websites into editable Figma Design layers. A lightweight, local-first adaptation of [Builder.io/figma-html](https://github.com/BuilderIO/figma-html), licensed under MIT.
+Import local HTML and ZIP websites into editable Figma Design layers. A lightweight, local-first adaptation of [Builder.io/figma-html](https://github.com/BuilderIO/figma-html), licensed under MIT.
 
 ![HTML Canvas](docs/images/cover-1920x1080.png)
 
 ## 功能
 
 - 导入 `.html` / `.htm`，支持多文件选择。
+- 同一 HTML 的常见静态 Tab 自动拆成多个完整页面，保留公共导航与页头。
 - ZIP 内的多个页面、共享 CSS、嵌套 `@import`、相对路径图片和字体资源一起处理。
 - 按文件名命名页面，横向间隔 120px 排列，并避开画布已有内容。
 - 提供总体进度、缺失资源提示和失败回滚。
@@ -54,7 +55,8 @@ assets/images/product-1.svg
 
 ## 限制
 
-- 只支持静态页面，不执行原页面脚本；不自动运行 React/Vue 源码或遍历 SPA 路由。
+- 可尝试运行内嵌脚本并捕获有限的页面状态，仍需要可在本地渲染的打包产物。
+- 混用静态 Tab 标记和脚本切换的页面可能重复导出。侧边栏菜单在部分情况下只捕获首页。
 - 不捕获浏览器当前页面，不支持直接输入网址；外部资源不会加载，请一起打包。
 - HTML/CSS 支持是尽力还原，复杂滤镜、布局和字体可能与浏览器存在差异。
 - ZIP 内字体可以辅助页面渲染，但可编辑文字仍需要 Figma 中可用的匹配字体。
@@ -62,13 +64,37 @@ assets/images/product-1.svg
 - 部分图标与图片会栅格化，以保留外观。
 - 每个 ZIP：压缩后最大 32 MB，解压后最大 128 MB，单文件最大 32 MB，最多 1000 个条目、50 个 HTML 页面；不支持加密 ZIP。
 
+## 一个 HTML 的多个 Tab
+
+上传同一个文件即可自动展开已存在于 HTML 中的 Tab 内容，每个状态对应一个完整画框，并以“文件名 / Tab 名称”命名。试用 [四个 Tab 的示例](examples/four-tabs.html)，建议宽度 1440px；应导入 4 个页面。
+
+支持 `role="tab"` + `aria-controls` / `role="tabpanel"`、常见的 `data-tab` / `data-tab-target` / `data-bs-target`、Tab 导航的 `href="#区域ID"`，以及部分内联 `showTab('区域ID')` / `switchTab('区域ID')` 写法。只读取内联处理器的字面目标，不执行函数。CSS radio Tab 可使用 `.tabs` 中的 `tab1` → `panel1` 命名或显式关联。
+
+支持嵌套 Tab；多个独立 Tab 组会组合生成状态，每个 HTML 最多 32 种组合，超过时会要求拆分。普通文档锚点不作为页面拆分。
+
+样式按常见 active / selected 状态尽力还原；支持 `data-figma-display="grid"` 等属性指定强制展开时的布局类型。
+
+### 脚本驱动的 Tab / 筛选按钮
+
+带脚本的页面会在隔离沙箱中运行，并尝试依次点击识别出的单选控件组。插件设置可以关闭自动切换，每个已捕获的状态会生成一个画框。识别参考 `aria-selected`、`aria-pressed`、`aria-current`、`data-state`、常见选中 class 及样式差异，也支持同名 radio 组和不超过 8 项的 `<select>`。
+
+每次点击后会等待点击触发的定时器（如“加载中…”之后再出内容）完成、DOM 稳定后再截取，点完一组会恢复原选中项再处理下一组。只切换页面初始时可见的控件组，不做多组组合，也不进入切换后才出现的下一级控件；每个 HTML 最多 20 个脚本状态。需要登录才能显示的页面不会自动跳过登录。[`local-test/script-states/`](local-test/script-states/) 中有 8 种写法的测试页。
+
+## 为什么导入后是空白？
+
+“单文件 HTML”不一定是静态页面。React/Vue 打包产物可能只有一个空的 `#root` / `#app`，内容依靠 JavaScript 运行后才生成。插件会尝试在隔离沙箱中运行内嵌脚本。依赖网络请求、外部脚本或登录的页面仍可能得到空白或不完整的结果。
+
+遇到这种情况，请从原项目导出包含实际正文节点的预渲染 HTML，再导入。常见的空挂载页面会报错。包含完整正文的 SSR 页面可以进入解析流程。
+
 ## 测试
 
 ```sh
 npm run test:local
 ```
 
-覆盖 ZIP 资源打包、批量导入 UI、解析清理、字体匹配、临时构建与分组、图片裁切、背景及图标等八组检查。测试使用 Node DOM 解析和模拟浏览器 / Figma API；真实 Figma 显示效果仍需要人工回归。仓库不宣称已通过 Figma 审核。
+覆盖 Tab 状态、ZIP 资源打包、批量导入 UI、解析清理、字体匹配、临时构建与分组、图片裁切、背景、变换及图标等十组检查。
+
+还原度可用浏览器对照检查：运行 `npm run preview`，打开 `http://localhost:8765/preview.html?file=fidelity.html&width=900`，左侧是原始 HTML，右侧是按解析出的图层绘制的结果。把要检查的 HTML 放进 `local-test/` 并修改 `file` 参数即可。`fidelity-2.html` 覆盖变换、圆锥/重复渐变、clip-path、outline、混合模式、文字换行与省略号、CSS 计数器；加上 `&fonts=Arial,Inter` 可模拟 Figma 已有的字体列表，检查缺失网页字体转图片的效果。测试使用 Node DOM 解析和模拟浏览器 / Figma API；真实 Figma 显示效果仍需要人工回归。仓库不宣称已通过 Figma 审核。
 
 ## 项目结构
 

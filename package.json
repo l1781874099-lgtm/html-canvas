@@ -16,7 +16,8 @@
     "dev:lib": "tsc -w",
     "dev": "NODE_OPTIONS=--openssl-legacy-provider NODE_ENV=development webpack --mode=development --watch",
     "build": "node tools/build.cjs",
-    "test:local": "node local-test/zip-files-unit.cjs && node local-test/batch-ui-unit.cjs && node local-test/renderer-unit.cjs && node local-test/font-import-unit.cjs && node local-test/staged-import-unit.cjs && node local-test/image-layout-unit.cjs && node local-test/visual-paints-unit.cjs && node local-test/glyph-unit.cjs"
+    "preview": "node tools/build-preview.cjs && node local-test/serve.cjs 8765",
+    "test:local": "node local-test/tab-pages-unit.cjs && node local-test/zip-files-unit.cjs && node local-test/batch-ui-unit.cjs && node local-test/renderer-unit.cjs && node local-test/font-import-unit.cjs && node local-test/staged-import-unit.cjs && node local-test/image-layout-unit.cjs && node local-test/visual-paints-unit.cjs && node local-test/transforms-unit.cjs && node local-test/glyph-unit.cjs"
   },
   "repository": {
     "type": "git",

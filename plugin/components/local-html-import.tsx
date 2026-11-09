@@ -8,6 +8,7 @@ import { localImportResponse } from '../functions/import-response';
 export function LocalHtmlImport() {
   const [busy,setBusy]=React.useState(false),[status,setStatus]=React.useState(''),[error,setError]=React.useState(false);
   const [progress,setProgress]=React.useState(0),[width,setWidth]=React.useState('1920');
+  const [rasterizeFonts,setRasterizeFonts]=React.useState(true),[captureStates,setCaptureStates]=React.useState(true),fonts=React.useRef<string[]|undefined>();
   const input=React.useRef<HTMLInputElement>(null),active=React.useRef<string|null>(null),watchdog=React.useRef<number|undefined>();
   const armWatchdog=()=>{
     clearTimeout(watchdog.current);
@@ -19,6 +20,8 @@ export function LocalHtmlImport() {
   };
   React.useEffect(()=>{
     const receive=(event:MessageEvent)=>{
+      const fontList=event.data?.pluginMessage;
+      if(fontList?.type==='fontList' && Array.isArray(fontList.families)){fonts.current=fontList.families;return;}
       const message=localImportResponse(event.data,active.current);if(!message)return;
       if(message.type==='doneLoading'){
         clearTimeout(watchdog.current);active.current=null;setBusy(false);setProgress(100);
@@ -34,6 +37,7 @@ export function LocalHtmlImport() {
       }
     };
     window.addEventListener('message',receive);
+    parent.postMessage({pluginMessage:{type:'listFonts'}},'*');
     return ()=>{window.removeEventListener('message',receive);clearTimeout(watchdog.current);};
   },[]);
 
@@ -56,8 +60,9 @@ export function LocalHtmlImport() {
         try{
           update(0,'正在读取……');
           const html=file.html;
-          const result=await renderLocalHtml(html,viewport,{},(fraction,label)=>update(.08+fraction*.57,label));
-          result.layers[0].name=file.name.replace(/\.html?$/i,'');
+          const result=await renderLocalHtml(html,viewport,{rasterizeMissingFonts:rasterizeFonts,availableFonts:fonts.current,captureScriptStates:captureStates},(fraction,label)=>update(.08+fraction*.57,label));
+          const fileName=file.name.replace(/\.html?$/i,'');
+          result.layers.forEach((layer:any,index:number)=>{layer.name=result.layers.length>1?fileName+' / '+(layer.name || '页面 '+(index+1)):fileName;});
           const images:any[]=[];
           for(const root of result.layers)await traverseLayers(root,async(layer:any)=>{const fills=getImageFills(layer);if(fills && fills.length)images.push(layer);});
           for(let i=0;i<images.length;i++){
@@ -84,6 +89,14 @@ export function LocalHtmlImport() {
       <span>页面宽度 <span style={{color:'#989ba3'}}>px</span></span>
       <input aria-label="页面宽度" type="number" min="320" max="3840" value={width} disabled={busy} onChange={e=>setWidth(e.target.value)} style={{width:104,padding:'7px 10px',border:'1px solid #e2e4e9',borderRadius:6,color:'#383b42',background:'#fff'}}/>
     </label>
+    <label style={{display:'flex',alignItems:'center',gap:8,marginBottom:18,fontSize:11,color:'#5c606a'}}>
+      <input type="checkbox" checked={rasterizeFonts} disabled={busy} onChange={e=>setRasterizeFonts(e.target.checked)}/>
+      <span>缺少网页字体时将文字转为图片（保证外观一致）</span>
+    </label>
+    <label style={{display:'flex',alignItems:'center',gap:8,marginBottom:18,fontSize:11,color:'#5c606a'}}>
+      <input type="checkbox" checked={captureStates} disabled={busy} onChange={e=>setCaptureStates(e.target.checked)}/>
+      <span>自动切换脚本驱动的 Tab / 筛选按钮，每个状态导出一个图层</span>
+    </label>
     <input ref={input} type="file" multiple accept=".html,.htm,.zip,text/html,application/zip" style={{display:'none'}} onChange={e=>{const files=Array.from(e.target.files || []);e.target.value='';if(files.length)importFiles(files);}}/>
     <button type="button" disabled={busy} onClick={()=>input.current?.click()} style={{width:'100%',padding:'11px 16px',border:0,borderRadius:6,color:'#fff',background:'#3374ed',fontWeight:500}}>{busy?'正在导入…':'选择 HTML / ZIP（可多选）'}</button>
     {(busy || progress>0)&&<div style={{marginTop:22}}>
@@ -91,6 +104,6 @@ export function LocalHtmlImport() {
       <div role="progressbar" aria-label="HTML 导入进度" aria-valuemin={0} aria-valuemax={100} aria-valuenow={progress} style={{height:4,background:'#edf0f5',borderRadius:4,overflow:'hidden'}}><div style={{height:'100%',width:progress+'%',background:error?'#d65353':'#3374ed',transition:'width .2s'}}/></div>
     </div>}
     {status&&<p role="status" style={{fontSize:11,whiteSpace:'pre-wrap',overflowWrap:'anywhere',color:error?'#c44343':'#737781',lineHeight:1.8,marginTop:12}}>{status}</p>}
-    <p style={{fontSize:11,lineHeight:1.8,color:'#a1a4ad',margin:'22px 0 0',paddingTop:16,borderTop:'1px solid #f0f1f4'}}>HTML 可直接上传；独立 CSS 和图片请一起打包 ZIP。<br/>本机处理，不执行脚本；不加载外部网址资源。</p>
+    <p style={{fontSize:11,lineHeight:1.8,color:'#a1a4ad',margin:'22px 0 0',paddingTop:16,borderTop:'1px solid #f0f1f4'}}>HTML 可直接上传，独立 CSS 和图片请一起打包 ZIP。<br/>可展开常见 Tab。请导入可信文件，内嵌脚本会在隔离沙箱中运行。</p>
   </main>;
 }

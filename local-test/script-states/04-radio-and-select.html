@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><title>04 隐藏 radio 胶囊 + select 下拉筛选</title>
+<style>
+body{margin:0;font-family:"Microsoft YaHei",sans-serif;background:#f3f5f9;color:#1d2433}
+.box{width:960px;margin:40px auto;background:#fff;border-radius:12px;padding:24px;box-shadow:0 4px 16px rgba(0,0,0,.06)}
+.bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
+.pills{display:flex;gap:6px}
+.pills input{position:absolute;opacity:0;pointer-events:none}
+.pills label{padding:6px 16px;border-radius:16px;background:#eef1f6;color:#4a5468;cursor:pointer}
+.pills input:checked+label{background:#5b5bd6;color:#fff}
+select{padding:6px 10px;border:1px solid #d3d8e2;border-radius:8px;font-size:14px}
+.big{font-size:44px;font-weight:700;color:#5b5bd6}.sub{color:#7a8396;margin-top:6px}
+.bars{display:flex;align-items:flex-end;gap:14px;height:180px;margin-top:24px}
+.bars div{flex:1;background:#c7c7f5;border-radius:6px 6px 0 0}
+</style></head><body>
+<div class="box">
+  <div class="bar">
+    <div class="pills">
+      <input type="radio" name="period" id="p1" value="日" checked><label for="p1">日</label>
+      <input type="radio" name="period" id="p2" value="周"><label for="p2">周</label>
+      <input type="radio" name="period" id="p3" value="月"><label for="p3">月</label>
+    </div>
+    <select id="region" aria-label="区域"><option>华东</option><option>华南</option><option>华北</option><option>西南</option></select>
+  </div>
+  <div id="out"></div>
+</div>
+<script>
+const factor={日:1,周:7,月:30},base={华东:320,华南:260,华北:210,西南:150};
+function render(){
+  const p=document.querySelector('input[name=period]:checked').value,r=document.getElementById('region').value,v=base[r]*factor[p];
+  document.getElementById('out').innerHTML='<div class="big">'+v.toLocaleString()+' 单</div><div class="sub">'+r+' · 按'+p+'统计</div><div class="bars">'+[.4,.7,.55,.9,.65,1,.8].map((h,i)=>'<div style="height:'+Math.round(h*((i+base[r]/40)%3+1)*45)+'px"></div>').join('')+'</div>';
+}
+document.querySelectorAll('input[name=period]').forEach(i=>i.addEventListener('change',render));
+document.getElementById('region').addEventListener('change',render);
+render();
+</script></body></html>

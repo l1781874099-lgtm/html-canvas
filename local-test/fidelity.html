@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>还原度回归页面</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#f4f6fa;font-family:Arial,"Microsoft YaHei",sans-serif;color:#1f2a3d;font-size:14px}
+.wrap{padding:24px;display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.card{background:#fff;border-radius:16px;padding:18px;box-shadow:0 1px 2px rgba(15,23,42,.08),0 8px 24px rgba(15,23,42,.12);overflow:hidden;position:relative}
+.card h3{margin:0 0 10px;font-size:16px;letter-spacing:-.6px}
+.avatar{width:56px;height:56px;border-radius:50%;overflow:hidden;display:inline-block}
+.avatar img{width:100%;height:100%;object-fit:cover;display:block}
+.tag{display:inline-block;padding:2px 8px;border-radius:999px;background:#eef2ff;color:#4f46e5;font-size:12px;margin-left:8px}
+.tag::before{content:"● ";color:#22c55e}
+.side{border-left:4px solid #6366f1;border-bottom:1px solid #e5e7eb;padding:8px 12px;margin:10px 0}
+.dash{border:2px dashed #94a3b8;border-radius:10px;padding:10px;margin-top:10px}
+.inset{box-shadow:inset 0 0 0 3px #f59e0b;padding:10px;border-radius:8px;margin-top:10px}
+.faded{opacity:.4}
+.ghost{opacity:0}
+ul{margin:8px 0;padding-left:20px}
+ol{margin:8px 0;padding-left:24px}
+p.inline{line-height:22px;margin:8px 0}
+p.inline a{color:#2563eb;text-decoration:underline;font-weight:700}
+.strike{text-decoration:line-through;color:#94a3b8}
+pre{background:#0f172a;color:#e2e8f0;padding:10px;border-radius:8px;font-size:12px;margin:8px 0}
+.badge{position:absolute;top:12px;right:12px;background:#ef4444;color:#fff;font-size:11px;padding:2px 6px;border-radius:6px;z-index:2}
+.under{position:absolute;top:8px;right:8px;width:60px;height:30px;background:#fde68a}
+.radial{height:80px;border-radius:12px;background:radial-gradient(circle at 30% 40%,#fef08a,#f97316 60%,#7c2d12)}
+.bar{height:10px;border-radius:5px;background:#e2e8f0;position:relative;margin-top:12px}
+.bar::after{content:"";position:absolute;left:0;top:0;bottom:0;width:65%;border-radius:5px;background:linear-gradient(90deg,#6366f1,#22d3ee)}
+.justify{text-align:justify;width:220px}
+.icon-bg{width:32px;height:32px;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Ccircle cx='5' cy='5' r='4' fill='%2310b981'/%3E%3C/svg%3E") center/16px 16px no-repeat #ecfdf5;border-radius:8px;display:inline-block;vertical-align:middle}
+.blur{filter:blur(2px)}
+.check{display:flex;align-items:center;gap:8px;margin-top:8px}
+.check span::before{content:"";display:inline-block;width:14px;height:14px;border:2px solid #6366f1;border-radius:4px;margin-right:6px;vertical-align:-2px;background:#eef2ff}
+</style>
+</head>
+<body>
+<svg style="display:none"><symbol id="i-star" viewBox="0 0 24 24"><path d="M12 2l3 7h7l-5.5 4.5 2 7.5-6.5-4.5-6.5 4.5 2-7.5L2 9h7z" fill="currentColor"/></symbol></svg>
+<div class="wrap">
+  <div class="card">
+    <span class="badge">NEW</span>
+    <h3>圆形头像与标签</h3>
+    <span class="avatar"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='80'%3E%3Crect width='120' height='80' fill='%233b82f6'/%3E%3Crect x='40' width='40' height='80' fill='%23f43f5e'/%3E%3C/svg%3E" alt=""></span>
+    <span class="tag">在线</span>
+    <div class="side">左边框 4px + 下边框 1px</div>
+    <div class="dash">虚线边框</div>
+    <div class="inset">内阴影</div>
+    <div class="faded">半透明 40% 文字</div>
+    <div class="ghost">不应出现的透明文字</div>
+  </div>
+  <div class="card">
+    <h3>列表与行内文本</h3>
+    <ul><li>无序列表一</li><li>无序列表二</li></ul>
+    <ol><li>有序列表一</li><li>有序列表二</li></ol>
+    <p class="inline">这是一个段落，其中包含 <a>加粗链接</a> 之后的文字会在这里换行并继续延伸到下一行，用来测试首行缩进的问题。</p>
+    <div class="strike">删除线文本</div>
+    <pre>const a = 1;
+function f() {
+  return a;
+}</pre>
+  </div>
+  <div class="card">
+    <div class="under"></div>
+    <h3>渐变、图标与层级</h3>
+    <div class="radial"></div>
+    <div class="bar"></div>
+    <p class="justify">两端对齐的文字段落用于检查 justify 对齐方式是否被正确映射到 Figma 中。</p>
+    <span class="icon-bg"></span>
+    <svg width="24" height="24" style="color:#f59e0b;vertical-align:middle"><use href="#i-star"/></svg>
+    <span class="blur">模糊</span>
+    <div class="check"><span>自定义复选框</span></div>
+  </div>
+</div>
+</body>
+</html>

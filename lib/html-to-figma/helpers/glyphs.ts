@@ -3,7 +3,8 @@ import { LayerNode } from '../types/nodes';
 
 // Text symbols can select completely different emoji fonts inside Figma.
 // Preserve their browser-rendered shape as a small high-density image instead.
-const symbolRun = /([\u2190-\u2bff\u{1f000}-\u{1faff}][\ufe0e\ufe0f\u200d\u2190-\u2bff\u{1f000}-\u{1faff}]*)/gu;
+// Private-use code points are icon-font glyphs; Figma has no such font.
+const symbolRun = /([\u2190-\u2bff\ue000-\uf8ff\u{1f000}-\u{1faff}\u{f0000}-\u{ffffd}][\ufe0e\ufe0f\u200d\u2190-\u2bff\ue000-\uf8ff\u{1f000}-\u{1faff}\u{f0000}-\u{ffffd}]*)/gu;
 export function splitSymbolRuns(root: Element) {
   const walker=document.createTreeWalker(root,4);
   const nodes: Node[]=[];let n:Node|null;
@@ -21,7 +22,7 @@ export function splitSymbolRuns(root: Element) {
 
 export function glyphLayer(node: Node): LayerNode | undefined {
   const text=(node.textContent || '').trim();
-  if(!text || text.length>16 || !/^[\p{S}\ufe0e\ufe0f\u200d]+$/u.test(text))return;
+  if(!text || text.length>16 || !/^[\p{S}\p{Co}\ufe0e\ufe0f\u200d]+$/u.test(text))return;
   const parent=node.parentElement;
   if(!parent || parent.closest('svg,script,style,noscript'))return;
   const style=getComputedStyle(parent);

@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><title>08 反例：没有单选切换（应只导出 1 个图层）</title>
+<style>
+body{margin:0;font-family:"Microsoft YaHei",sans-serif;background:#f6f7fb;color:#222}
+.wrap{width:900px;margin:40px auto;background:#fff;border-radius:12px;padding:24px}
+.chips{display:flex;gap:8px;margin-bottom:16px}
+.chips span{padding:5px 12px;border-radius:14px;border:1px solid #ddd;cursor:pointer}
+.chips span.active{background:#222;color:#fff}
+.actions{display:flex;gap:10px;margin-top:16px}
+.actions button{padding:8px 16px;border-radius:8px;border:1px solid #ccc;background:#fff;cursor:pointer}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center}
+.modal.show{display:flex}.modal div{background:#fff;padding:30px;border-radius:12px}
+form{margin-top:20px;display:flex;gap:10px}
+</style></head><body>
+<div class="wrap">
+  <h2>标签筛选（多选，两个已选中）</h2>
+  <div class="chips" id="chips"><span class="active">前端</span><span class="active">后端</span><span>设计</span><span>测试</span></div>
+  <div id="list">共 12 条结果</div>
+  <div class="actions"><button onclick="exportCsv()">导出 CSV</button><button onclick="document.getElementById('m').classList.add('show')">查看详情</button></div>
+  <form onsubmit="return false"><input placeholder="姓名"><select><option>男</option><option>女</option></select><button>提交</button></form>
+</div>
+<div class="modal" id="m"><div>详情弹窗</div></div>
+<script>
+function exportCsv(){document.getElementById('list').textContent='已导出'}
+document.getElementById('chips').addEventListener('click',e=>{if(e.target.tagName==='SPAN'){e.target.classList.toggle('active');document.getElementById('list').textContent='共 '+(4*document.querySelectorAll('#chips .active').length)+' 条结果'}});
+</script></body></html>

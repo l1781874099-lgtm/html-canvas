@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="zh-CN"><meta charset="utf-8"><title>脚本状态回归</title>
+<body style="font:13px/1.7 Arial,sans-serif;margin:16px">
+<h3>脚本切换状态回归（npm run preview 后打开 /script-states/run-all.html）</h3>
+<pre id="out">running…</pre>
+<script>
+// Expected layer names per fixture; ?extra=file.html:N adds a page that must yield N layers.
+const cases=[
+  ['01-class-tabs-canvas.html',['默认','本周','本月']],
+  ['02-inline-style-segments.html',['默认','面积','GDP','增速']],
+  ['03-rerender-aria.html',['默认','商品','客户','前两条','最后一条']],
+  ['04-radio-and-select.html',['默认','周','月','华南','华北','西南']],
+  ['05-hash-router-sidebar.html',['默认','用户管理','数据报表','系统设置']],
+  ['06-async-loading-radix.html',['默认','安全','通知']],
+  ['07-tailwind-toggle-pagination.html',['默认','年度','第 2 页','第 3 页','第 4 页']],
+  ['08-no-switchers.html',[null]],
+];
+const extra=new URLSearchParams(location.search).get('extra');
+if(extra){const [file,count]=extra.split(':');cases.push(['../'+file,Number(count)]);}
+const out=document.getElementById('out'),lines=[];
+function run(file){
+  return new Promise(resolve=>{
+    const frame=document.createElement('iframe');frame.style.cssText='width:1400px;height:200px;border:1px solid #ccc';
+    frame.src='../preview.html?file=script-states/'+file+'&width=1200&zoom=0.1';
+    document.body.appendChild(frame);const start=Date.now();
+    const poll=()=>{
+      const w=frame.contentWindow,status=w&&w.document.getElementById('status');const text=status?status.textContent:'';
+      if(/^(done|error)/.test(text)||Date.now()-start>240000){const names=(w.__layers||[]).map(l=>l.name??null);frame.remove();resolve({names,text,seconds:((Date.now()-start)/1000).toFixed(1),warnings:w.__warnings||[]});}
+      else setTimeout(poll,500);
+    };
+    setTimeout(poll,500);
+  });
+}
+(async()=>{
+  let failed=0;
+  for(const [file,expected] of cases){
+    const r=await run(file);
+    const ok=Array.isArray(expected)?JSON.stringify(r.names)===JSON.stringify(expected):r.names.length===expected;
+    if(!ok)failed++;
+    lines.push((ok?'PASS ':'FAIL ')+file+'  '+r.seconds+'s  '+JSON.stringify(r.names)+(ok?'':'\n     expected '+JSON.stringify(expected)+'\n     '+r.text.slice(0,200))+(r.warnings.length?'\n     warnings: '+r.warnings.join(' / '):''));
+    out.textContent=lines.join('\n')+'\n…';
+  }
+  out.textContent=lines.join('\n')+'\n\n'+(failed?failed+' FAILED':'ALL PASSED');
+  document.title=failed?'FAILED':'PASSED';
+})();
+</script></body></html>

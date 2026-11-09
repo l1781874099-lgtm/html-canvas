@@ -98,7 +98,7 @@ export async function importLocalCanvas(msg:any,services:Services) {
 
 function canGroup(layer:any):boolean {
   const visible=(items:any)=>Array.isArray(items) && items.some(item=>item.visible!==false && item.opacity!==0);
-  return !layer.clipsContent && !layer.isMask && !layer.rotation &&
+  return !layer.clipsContent && !layer.isMask && !layer.rotation && !layer.relativeTransform &&
     (!layer.layoutMode || layer.layoutMode==='NONE') &&
     !visible(layer.fills) && !visible(layer.backgrounds) &&
     !visible(layer.strokes) && !visible(layer.effects);

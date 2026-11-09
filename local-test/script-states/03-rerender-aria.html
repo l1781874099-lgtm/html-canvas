@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><title>03 整体重渲染（类 React）· role=tab + aria-pressed</title>
+<style>
+body{margin:0;font-family:"Microsoft YaHei",sans-serif;background:#fafafa;color:#222}
+#app{width:1000px;margin:40px auto}
+[role=tablist]{display:inline-flex;background:#eceef3;border-radius:10px;padding:4px;margin-bottom:16px}
+[role=tab]{border:0;background:none;padding:8px 20px;border-radius:8px;font-size:14px;cursor:pointer;color:#555}
+[role=tab][aria-selected=true]{background:#fff;color:#111;box-shadow:0 1px 4px rgba(0,0,0,.12)}
+.filters{display:flex;gap:8px;margin:0 0 16px}
+.filters button{border:1px solid #d6d9e0;background:#fff;border-radius:16px;padding:5px 14px;cursor:pointer}
+.filters button[aria-pressed=true]{background:#111;color:#fff;border-color:#111}
+table{width:100%;border-collapse:collapse;background:#fff;border-radius:10px;overflow:hidden}
+th,td{padding:12px 16px;border-bottom:1px solid #f0f0f0;text-align:left}th{background:#f6f7f9;color:#777;font-weight:500}
+</style></head><body>
+<div id="app"></div>
+<script>
+const state={tab:'订单',filter:'全部'};
+const rows={订单:[['#1024','张三','已付款'],['#1025','李四','待发货'],['#1026','王五','已完成']],商品:[['T恤','¥79','库存 320'],['卫衣','¥199','库存 85'],['帽子','¥49','库存 610']],客户:[['张三','VIP','上海'],['李四','普通','北京'],['王五','VIP','深圳']]};
+const heads={订单:['单号','客户','状态'],商品:['名称','价格','库存'],客户:['姓名','等级','城市']};
+function view(){
+  const list=rows[state.tab].filter((r,i)=>state.filter==='全部'||(state.filter==='前两条'?i<2:i===2));
+  return '<div role="tablist">'+Object.keys(rows).map(t=>'<button role="tab" aria-selected="'+(t===state.tab)+'" data-tab="'+t+'">'+t+'</button>').join('')+'</div>'
+   +'<div class="filters">'+['全部','前两条','最后一条'].map(f=>'<button aria-pressed="'+(f===state.filter)+'" data-filter="'+f+'">'+f+'</button>').join('')+'</div>'
+   +'<table><tr>'+heads[state.tab].map(h=>'<th>'+h+'</th>').join('')+'</tr>'+list.map(r=>'<tr>'+r.map(c=>'<td>'+c+'</td>').join('')+'</tr>').join('')+'</table>';
+}
+const app=document.getElementById('app');
+function render(){app.innerHTML=view()}
+app.addEventListener('click',e=>{const t=e.target.closest('[data-tab]'),f=e.target.closest('[data-filter]');if(t)state.tab=t.dataset.tab;if(f)state.filter=f.dataset.filter;if(t||f)render()});
+render();
+</script></body></html>

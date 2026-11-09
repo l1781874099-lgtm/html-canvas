@@ -1,37 +1,173 @@
 import { document, Node, getComputedStyle, Element } from "../environment";
 import { LayerNode, WithRef } from "../types/nodes";
-import { getBoundingClientRect } from "./dimensions";
-import { hasChildren, getDepth, getParents, traverse } from "./nodes";
+import { elementName, hasChildren, traverse } from "./nodes";
 import { addConstraints } from "./styles";
+import { boundsOf, isTransformed } from "./transforms";
 
-const getParent = ({
-  layer,
-  root,
-}: {
-  layer: LayerNode;
-  root: WithRef<FrameNode>;
-}) => {
-  let response: LayerNode | null = null;
-  try {
-    traverse(root, (child) => {
-      if (
-        child &&
-        (child as any).children &&
-        (child as any).children.includes(layer)
-      ) {
-        response = child;
-        // Deep traverse short circuit hack
-        throw "DONE";
-      }
-    });
-  } catch (err) {
-    if (err === "DONE") {
-      // Do nothing
-    } else {
-      console.error(err instanceof Error ? err.message : err);
+const clips = (el: Element | Node | undefined) => {
+  if (!(el instanceof Element)) return false;
+  const style = getComputedStyle(el);
+  return style.overflowX !== "visible" || style.overflowY !== "visible";
+};
+
+const isTextNode = (ref: Element | Node | undefined) => !!ref && (ref as Node).nodeType === Node.TEXT_NODE;
+const ownerElement = (ref: Element | Node | undefined): Element | null =>
+  !ref ? null : isTextNode(ref) ? (ref as Node).parentElement : (ref as Element);
+
+// Wrap an element's own layer in a frame that will hold its descendants.
+// Clipping frames take the element's corner radii and its effects so the
+// shadow isn't clipped away and children are masked by the rounded box.
+const containerFor = (layer: LayerNode, el: Element): LayerNode => {
+  // A rotated box can't clip: the frame is axis-aligned at its bounds.
+  const clipsContent = clips(el) && (layer as any)._rotation === undefined && layer.type !== "SVG";
+  const bounds = boundsOf(layer);
+  const frame: LayerNode = {
+    type: "FRAME",
+    name: (layer as any).name,
+    clipsContent,
+    x: bounds.x,
+    y: bounds.y,
+    width: bounds.width,
+    height: bounds.height,
+    ref: el,
+    backgrounds: [] as any,
+    children: [layer] as any[],
+  };
+  const radii = layer as any;
+  if (clipsContent) {
+    for (const key of ["topLeftRadius", "topRightRadius", "bottomLeftRadius", "bottomRightRadius"]) {
+      if (radii[key] !== undefined) (frame as any)[key] = radii[key];
     }
   }
-  return response;
+  const effects: Effect[] = (layer as any).effects || [];
+  const moved = effects.filter((effect) => clipsContent || effect.type === "LAYER_BLUR");
+  if (moved.length) {
+    (frame as any).effects = moved;
+    (layer as any).effects = effects.filter((effect) => !moved.includes(effect));
+  }
+  return frame;
+};
+
+// Each layer goes into the frame of its nearest ancestor element that has a
+// layer; that ancestor's own layer is wrapped into a frame on first use.
+const nestLayers = (root: WithRef<FrameNode>, layers: LayerNode[]) => {
+  const rootEl = root.ref as Element;
+  // An element's first layer is its box; border strips that share the ref
+  // must not become the container for its children.
+  const own = new Map<Element | Node, LayerNode>();
+  const containers = new Map<Element | Node, LayerNode>();
+  const parentOf = new Map<LayerNode, LayerNode>();
+  containers.set(rootEl, root);
+  (root as any).children = [];
+  for (const layer of layers) {
+    if (layer === root) continue;
+    const ref = layer.ref;
+    const isText = isTextNode(ref);
+    let ancestor: Element | null = ref ? (isText ? (ref as Node).parentElement : (ref as Element).parentElement) : null;
+    let container: LayerNode = root;
+    while (ancestor && ancestor !== rootEl && ancestor !== document.body) {
+      const existing = containers.get(ancestor);
+      if (existing) { container = existing; break; }
+      const ownLayer = own.get(ancestor);
+      if (ownLayer) {
+        const parent = parentOf.get(ownLayer)!;
+        const frame = containerFor(ownLayer, ancestor);
+        const siblings = (parent as any).children as LayerNode[];
+        siblings.splice(siblings.indexOf(ownLayer), 1, frame);
+        parentOf.set(frame, parent);
+        parentOf.set(ownLayer, frame);
+        containers.set(ancestor, frame);
+        container = frame;
+        break;
+      }
+      ancestor = ancestor.parentElement;
+    }
+    ((container as any).children as LayerNode[]).push(layer);
+    parentOf.set(layer, container);
+    if (ref && !isText && !own.has(ref)) own.set(ref, layer);
+  }
+};
+
+// Group siblings that share a deeper DOM ancestor than the frame's own
+// element, deepest first, so the layer tree follows the HTML structure.
+const groupByAncestors = (frame: LayerNode) => {
+  const children = (frame as any).children as LayerNode[];
+  const frameEl = ownerElement(frame.ref);
+  const depths = new Map<Element, number>();
+  const depth = (el: Element): number => {
+    let d = depths.get(el);
+    if (d === undefined) { d = el.parentElement ? depth(el.parentElement) + 1 : 0; depths.set(el, d); }
+    return d;
+  };
+  while (frameEl && children.length > 2) {
+    const counts = new Map<Element, number>();
+    for (const child of children) {
+      if (!child.ref || child.ref === frameEl) continue;
+      let ancestor: Element | null = isTextNode(child.ref) ? (child.ref as Node).parentElement : (child.ref as Element).parentElement;
+      for (; ancestor && ancestor !== frameEl && frameEl.contains(ancestor); ancestor = ancestor.parentElement) {
+        counts.set(ancestor, (counts.get(ancestor) || 0) + 1);
+      }
+    }
+    let best: Element | null = null;
+    counts.forEach((count, el) => {
+      if (count >= 2 && count < children.length && (!best || depth(el) > depth(best))) best = el;
+    });
+    if (!best) break;
+    const group: Element = best;
+    const members = children.filter((child) => child.ref && child.ref !== frameEl && group.contains(child.ref as Node));
+    const boxes = members.map(boundsOf);
+    const left = Math.min(...boxes.map((box) => box.x)), top = Math.min(...boxes.map((box) => box.y));
+    const right = Math.max(...boxes.map((box) => box.x + box.width)), bottom = Math.max(...boxes.map((box) => box.y + box.height));
+    const first = children.indexOf(members[0]);
+    const node: LayerNode = {
+      type: "FRAME",
+      name: elementName(group),
+      clipsContent: false,
+      ref: group,
+      x: left,
+      y: top,
+      width: Math.max(1, right - left),
+      height: Math.max(1, bottom - top),
+      backgrounds: [] as any,
+      children: members as any,
+    };
+    for (const member of members) children.splice(children.indexOf(member), 1);
+    children.splice(Math.min(first, children.length), 0, node);
+  }
+  for (const child of children) if (hasChildren(child)) groupByAncestors(child);
+};
+
+// CSS painting order inside a stacking context: negative z-index, in-flow
+// content, positioned z-index auto/0, then positive z-index; ties keep DOM order.
+const stackLevel = (ref: Element | Node | undefined, containerEl: Element | null): number => {
+  let level = 0;
+  for (let el = ownerElement(ref); el && el !== containerEl && el !== document.body; el = el.parentElement) {
+    const style = getComputedStyle(el);
+    const z = parseInt(style.zIndex, 10);
+    const parentDisplay = el.parentElement ? getComputedStyle(el.parentElement).display : "";
+    // Transforms and opacity create stacking contexts painted with positioned boxes.
+    const positioned = style.position !== "static" || isTransformed(el) || parseFloat(style.opacity) < 1 ||
+      (!isNaN(z) && /flex|grid/.test(parentDisplay));
+    if (!positioned) continue;
+    const clamped = isNaN(z) ? 0 : Math.max(-1e6, Math.min(1e6, z));
+    level = (clamped < 0 ? -1 : clamped > 0 ? 2 : 1) * 1e7 + clamped;
+  }
+  return level;
+};
+
+const sortByPaintOrder = (frame: LayerNode) => {
+  const children = (frame as any).children as LayerNode[];
+  const frameEl = ownerElement(frame.ref);
+  const levels = new Map<LayerNode, number>();
+  for (const child of children) {
+    levels.set(child, child.ref === frameEl ? -Infinity : stackLevel(child.ref, frameEl));
+  }
+  children.sort((a, b) => {
+    const level = levels.get(a)! - levels.get(b)!;
+    if (level || a.ref === b.ref || !a.ref || !b.ref) return level || 0;
+    return (a.ref as Node).compareDocumentPosition(b.ref as Node) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1;
+  });
+  for (const child of children) if (hasChildren(child)) sortByPaintOrder(child);
 };
 
 const makeTree = ({
@@ -41,194 +177,9 @@ const makeTree = ({
   root: WithRef<FrameNode>;
   layers: LayerNode[];
 }) => {
-  const refMap = new WeakMap<Element | Node, LayerNode>();
-  layers.forEach((layer) => {
-    if (layer.ref) {
-      refMap.set(layer.ref, layer);
-    }
-  });
-
-  let updated = true;
-  let iterations = 0;
-  while (updated) {
-    updated = false;
-    if (iterations++ > 10000) {
-      console.error("Too many tree iterations 1");
-      break;
-    }
-
-    traverse(root, (layer, originalParent) => {
-      // const node = layer.ref!;
-      const node = layer.ref;
-      let parentElement: Element | null =
-        (node && (node as Element).parentElement) || null;
-      do {
-        if (parentElement === document.body) {
-          break;
-        }
-        if (parentElement && parentElement !== document.body) {
-          // Get least common demoninator shared parent and make a group
-          const parentLayer = refMap.get(parentElement);
-          if (parentLayer === originalParent) {
-            break;
-          }
-          if (parentLayer && parentLayer !== root) {
-            if (hasChildren(parentLayer)) {
-              if (originalParent) {
-                const index = (originalParent as any).children.indexOf(layer);
-                (originalParent as any).children.splice(index, 1);
-                (parentLayer.children as Array<any>).push(layer);
-                updated = true;
-                return;
-              }
-            } else {
-              let parentRef = parentLayer.ref;
-              if (
-                parentRef &&
-                parentRef instanceof Node &&
-                parentRef.nodeType === Node.TEXT_NODE
-              ) {
-                parentRef = parentRef.parentElement as Element;
-              }
-              const overflowHidden =
-                parentRef instanceof Element &&
-                getComputedStyle(parentRef).overflow !== "visible";
-              const newParent: LayerNode = {
-                type: "FRAME",
-                clipsContent: !!overflowHidden,
-                // type: 'GROUP',
-                x: parentLayer.x,
-                y: parentLayer.y,
-                width: parentLayer.width,
-                height: parentLayer.height,
-                ref: parentLayer.ref,
-                backgrounds: [] as any,
-                children: [parentLayer, layer] as any[],
-              };
-
-              const parent = getParent({ layer: parentLayer, root });
-              if (!parent) {
-                console.warn(
-                  "\n\nCANT FIND PARENT\n",
-                  JSON.stringify({ ...parentLayer, ref: null })
-                );
-                continue;
-              }
-              if (originalParent) {
-                const index = (originalParent as any).children.indexOf(layer);
-                (originalParent as any).children.splice(index, 1);
-              }
-              delete parentLayer.ref;
-              const newIndex = (parent as any).children.indexOf(parentLayer);
-              refMap.set(parentElement, newParent);
-              (parent as any).children.splice(newIndex, 1, newParent);
-              updated = true;
-              return;
-            }
-          }
-        }
-      } while (parentElement && (parentElement = parentElement.parentElement));
-    });
-  }
-  // Collect tree of depeest common parents and make groups
-  let secondUpdate = true;
-  let secondIterations = 0;
-  while (secondUpdate) {
-    if (secondIterations++ > 10000) {
-      console.error("Too many tree iterations 2");
-      break;
-    }
-    secondUpdate = false;
-
-    traverse(root, (layer, parent) => {
-      if (secondUpdate) {
-        return;
-      }
-      if (layer.type === "FRAME") {
-        // Final all child elements with layers, and add groups around  any with a shared parent not shared by another
-        const ref = layer.ref as Element;
-        if (layer.children && layer.children.length > 2) {
-          const childRefs =
-            layer.children &&
-            (layer.children as LayerNode[]).map((child) => child.ref!);
-
-          let lowestCommonDenominator = layer.ref!;
-          let lowestCommonDenominatorDepth = getDepth(lowestCommonDenominator);
-
-          // Find lowest common demoninator with greatest depth
-          for (const childRef of childRefs) {
-            const otherChildRefs = childRefs.filter(
-              (item) => item !== childRef
-            );
-            const childParents = getParents(childRef);
-            for (const otherChildRef of otherChildRefs) {
-              const otherParents = getParents(otherChildRef);
-              for (const parent of otherParents) {
-                if (
-                  childParents.includes(parent) &&
-                  layer.ref!.contains(parent)
-                ) {
-                  const depth = getDepth(parent);
-                  if (depth > lowestCommonDenominatorDepth) {
-                    lowestCommonDenominator = parent;
-                    lowestCommonDenominatorDepth = depth;
-                  }
-                }
-              }
-            }
-          }
-          if (
-            lowestCommonDenominator &&
-            lowestCommonDenominator !== layer.ref
-          ) {
-            // Make a group around all children elements
-            const newChildren = layer.children!.filter((item: any) =>
-              lowestCommonDenominator.contains(item.ref)
-            );
-
-            if (newChildren.length !== layer.children.length) {
-              const lcdRect = getBoundingClientRect(
-                lowestCommonDenominator as Element
-              );
-
-              const overflowHidden =
-                lowestCommonDenominator instanceof Element &&
-                getComputedStyle(lowestCommonDenominator).overflow !==
-                  "visible";
-
-              const newParent: LayerNode = {
-                type: "FRAME",
-                clipsContent: !!overflowHidden,
-                ref: lowestCommonDenominator as Element,
-                x: lcdRect.left,
-                y: lcdRect.top,
-                width: lcdRect.width,
-                height: lcdRect.height,
-                backgrounds: [] as any,
-                children: newChildren as any,
-              };
-              refMap.set(lowestCommonDenominator, ref);
-              let firstIndex = layer.children.length - 1;
-              for (const child of newChildren) {
-                const childIndex = layer.children.indexOf(child as any);
-                if (childIndex > -1 && childIndex < firstIndex) {
-                  firstIndex = childIndex;
-                }
-              }
-              (layer.children as any).splice(firstIndex, 0, newParent);
-              for (const child of newChildren) {
-                const index = layer.children.indexOf(child);
-                if (index > -1) {
-                  (layer.children as any).splice(index, 1);
-                }
-              }
-              secondUpdate = true;
-            }
-          }
-        }
-      }
-    });
-  }
+  nestLayers(root, layers);
+  groupByAncestors(root);
+  sortByPaintOrder(root);
   // Update all positions
   traverse(root, (layer) => {
     if (layer.type === "FRAME" || (layer as any).type === "GROUP") {
@@ -253,7 +204,6 @@ export const getLayersForFrames = ({
   root: WithRef<FrameNode>;
   layers: LayerNode[];
 }) => {
-  (root as any).children = layers.slice(1);
   makeTree({ root, layers });
   const framesLayers = [root];
   addConstraints(framesLayers);

@@ -64,7 +64,9 @@ export interface Dimensions
 export function getBoundingClientRect(el: Element): Dimensions {
   const computed = getComputedStyle(el);
   const display = computed.display;
-  if (display.includes("inline") && el.children.length) {
+  // Only true inline boxes can have a degenerate rect around block children;
+  // inline-block/inline-flex boxes include their own padding.
+  if (display === "inline" && el.children.length) {
     const elRect = el.getBoundingClientRect();
     const aggregateRect = getAggregateRectOfElements(Array.from(el.children))!;
 
